@@ -102,6 +102,75 @@ def create_cell(num_layers, state_size, keep_prob, peepholes):
     return cell
 
 
+def lstm(x, num_layers, keep_prob,
+         state_size, peepholes, batch_size,
+         sequence_length):
+    """Create LSTM.
+
+    Args:
+        x: Tensor, input to network.
+        num_layers: int, number of layers.
+        keep_prob: float, keep probability for dropout.
+        state_size: int, state size.
+        peepholes: boolean, set True to use peephole connections.
+        batch_size: int, size of each batch.
+        sequence_length: tensor, batch sequence length.
+
+    Returns:
+        outputs: tensor, outputs from the network.
+    """
+    cell = create_cell(num_layers=num_layers, state_size=state_size,
+                       keep_prob=keep_prob, peepholes=peepholes)
+
+    init_state = cell.zero_state(batch_size=batch_size, dtype=tf.float32)
+
+    outputs, _ = tf.nn.dynamic_rnn(cell=cell, inputs=x,
+                                   sequence_length=sequence_length, initial_state=init_state)
+
+    outputs = tf.reshape(outputs, [-1, state_size])
+    return outputs
+
+
+def bi_lstm(x, num_layers, keep_prob,
+            state_size, peepholes, batch_size,
+            sequence_length):
+    cell_fw = create_cell(num_layers=num_layers, state_size=state_size,
+                          keep_prob=keep_prob, peepholes=peepholes)
+    cell_bw = create_cell(num_layers=num_layers, state_size=state_size,
+                          keep_prob=keep_prob, peepholes=peepholes)
+    init_state_fw = cell_fw.zero_state(batch_size=batch_size, dtype=tf.float32)
+    init_state_bw = cell_fw.zero_state(batch_size=batch_size, dtype=tf.float32)
+
+    birnn_outputs, _ = outputs, _ = tf.nn.bidirectional_dynamic_rnn(
+        cell_fw=cell_fw, cell_bw=cell_bw,
+        initial_state_fw=init_state_fw, initial_state_bw=init_state_bw,
+        sequence_length=sequence_length, inputs=x
+    )
+
+    output_fw, output_bw = birnn_outputs
+
+    outputs = tf.concat([output_fw, output_bw], axis=-1)
+    return outputs
+
+
+def get_last_hidden(batch_size, len_sequence, outputs,
+                    sequence_length):
+    """Get last hidden state.
+
+    Args:
+        batch_size: int, size of each batch.
+        len_sequence: int, length of each sequence.
+        outputs: tensor, outputs from network.
+        sequence_length: tensor, batch sequence length.
+
+    Returns:
+        last_hidden: tensor, retrieved last hidden state.
+    """
+    last_indices = tf.range(0, batch_size) * len_sequence + (sequence_length - 1)
+    last_hidden = tf.gather(outputs, last_indices)
+    return last_hidden
+
+
 def lrelu(x, alpha=0.1):
     """Leaky ReLU activation.
 
