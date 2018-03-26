@@ -1,6 +1,3 @@
-import numpy as np
-import tensorflow as tf
-
 from structure import property_wrap
 
 
