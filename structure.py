@@ -83,6 +83,25 @@ def conv_pool(x, ksize=None, stride=None,
         return output
 
 
+def create_cell(num_layers, state_size, keep_prob, peepholes):
+    """Function for creating a lstm cell.
+    Args:
+        num_layers: int, number of stacked lstm layers.
+        state_size: int, size of state.
+        keep_prob: float, keep probability for dropout.
+        peepholes: bool, set True to use peephole connections.
+    Returns:
+        Tensor, lstm cell.
+    """
+    cell = tf.nn.rnn_cell.LSTMCell(num_units=state_size, use_peepholes=peepholes)
+    cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, state_keep_prob=keep_prob,
+                                         output_keep_prob=keep_prob, input_keep_prob=keep_prob)
+    if num_layers > 1:
+        cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
+
+    return cell
+
+
 def lrelu(x, alpha=0.1):
     """Leaky ReLU activation.
 
